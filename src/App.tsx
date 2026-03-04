@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Send, Trash2, History, FolderOpen, Plus, X, Save } from 'lucide-react'
+import { Send, Trash2, History, FolderOpen, Plus, X, Save, Import } from 'lucide-react'
+import parseCurl from 'parse-curl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -126,6 +127,8 @@ export default function App() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
   const [saveRequestName, setSaveRequestName] = useState('')
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>('none')
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
+  const [curlCommand, setCurlCommand] = useState('')
 
   const [response, setResponse] = useState<{
     status: number
@@ -140,6 +143,55 @@ export default function App() {
   const handleClearHistory = () => {
     clearHistory()
     setHistory([])
+  }
+
+  const handleImportCurl = () => {
+    if (!curlCommand.trim()) return
+
+    try {
+      const parsed = parseCurl(curlCommand)
+      if (parsed) {
+        setMethod((parsed.method as HttpMethod) || 'GET')
+        setUrl(parsed.url)
+
+        if (parsed.header) {
+          const newHeaders: KeyValuePair[] = Object.entries(parsed.header).map(([key, value]) => ({
+            key,
+            value: value as string,
+            enabled: true,
+          }))
+          setHeaders([...newHeaders, { key: '', value: '', enabled: true }])
+        }
+
+        if (parsed.body) {
+          setBody(parsed.body)
+        }
+
+        // Params are usually part of the URL in parse-curl result,
+        // but let's see if we can extract them if they are in the URL.
+        try {
+          const urlObj = new URL(parsed.url)
+          const newParams: KeyValuePair[] = []
+          urlObj.searchParams.forEach((value, key) => {
+            newParams.push({ key, value, enabled: true })
+          })
+          if (newParams.length > 0) {
+            setParams([...newParams, { key: '', value: '', enabled: true }])
+            // Remove params from URL string for the input
+            urlObj.search = ''
+            setUrl(urlObj.toString())
+          }
+        } catch {
+          // Ignore URL parsing errors
+        }
+
+        setIsImportDialogOpen(false)
+        setCurlCommand('')
+      }
+    } catch (error) {
+      console.error('Failed to parse curl:', error)
+      alert('Failed to parse curl command. Please make sure it is a valid curl command.')
+    }
   }
 
   const handleSaveRequest = () => {
@@ -442,6 +494,39 @@ export default function App() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
+            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Import className="h-4 w-4 mr-2" />
+                  Import
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Import cURL</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="curl">cURL Command</Label>
+                    <Textarea
+                      id="curl"
+                      placeholder="curl -X POST https://api.example.com..."
+                      className="font-mono min-h-[200px]"
+                      value={curlCommand}
+                      onChange={(e) => setCurlCommand(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleImportCurl} disabled={!curlCommand.trim()}>
+                    Import
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
