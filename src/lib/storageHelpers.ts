@@ -12,11 +12,11 @@ import type {
 // ---------------------------------------------------------------------------
 
 export const STORAGE_KEYS = {
-  REQUESTS: 'litepostman:requests',
-  COLLECTIONS: 'litepostman:collections',
-  HISTORY: 'litepostman:history',
-  ENVIRONMENTS: 'litepostman:environments',
-  SETTINGS: 'litepostman:settings',
+  REQUESTS: 'litepost:requests',
+  COLLECTIONS: 'litepost:collections',
+  HISTORY: 'litepost:history',
+  ENVIRONMENTS: 'litepost:environments',
+  SETTINGS: 'litepost:settings',
 } as const
 
 // ---------------------------------------------------------------------------
@@ -162,7 +162,7 @@ export function resetSettings(): boolean {
 // Bulk / export helpers
 // ---------------------------------------------------------------------------
 
-/** Exports all litepostman data as a plain object (for backup / import). */
+/** Exports all litepost data as a plain object (for backup / import). */
 export function exportData() {
   return {
     requests: getRequests(),
@@ -184,7 +184,7 @@ export function importData(data: ReturnType<typeof exportData>): boolean {
   )
 }
 
-/** Removes **all** litepostman-namespaced keys from localStorage. */
+/** Removes **all** litepost-namespaced keys from localStorage. */
 export function clearAppData(): void {
   Object.values(STORAGE_KEYS).forEach(removeItem)
 }
